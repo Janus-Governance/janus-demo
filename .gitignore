@@ -1,0 +1,15 @@
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated demo outputs
+demos/**/outputs/*.json
+demos/**/outputs/*.ndjson
+demos/**/outputs/*.log
+
+# macOS
+.DS_Store

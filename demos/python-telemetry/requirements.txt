@@ -1,0 +1,2 @@
+# Intentionally minimal scaffold.
+# Add dependencies only when needed.

@@ -1,0 +1,10 @@
+{
+  "name": "janus-demo-node",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Janus demo runner scaffold (Node.js)",
+  "license": "MIT",
+  "scripts": {
+    "demo": "node src/run-demo.js"
+  }
+}

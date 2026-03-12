@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Janus Demo Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case", "demo", "invariants", "status", "summary"],
+  "properties": {
+    "case": {
+      "type": "string",
+      "description": "Case identifier (e.g., case-01-happy-path)."
+    },
+    "demo": {
+      "type": "string",
+      "description": "Demo runner identifier (e.g., node, python-telemetry, csv-portable, stress)."
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names of invariants validated by this run."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "SKIP"],
+      "description": "Execution outcome for this demo run."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short, human-readable summary of what happened."
+    },
+    "details": {
+      "type": "object",
+      "description": "Optional structured details (kept minimal).",
+      "additionalProperties": true
+    }
+  }
+}
