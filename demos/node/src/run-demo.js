@@ -142,6 +142,38 @@ function evaluate({ managementRecords, schemaRecords }) {
   return { omissionDetected, auditDecision, evidencePositive, evidenceNegative, notes };
 }
 
+function findHumanDecision({ managementRecords, missingMatchValues }) {
+  const decisions = managementRecords
+    .filter((r) => r && r.type === 'GOVERNANCE_EVENT' && r.event_type === 'GOVERNANCE_EXCEPTION_ACCEPTED')
+    .map((r) => ({
+      decision_id: r.decision_id,
+      authority_type: r.authority_type,
+      decision_outcome: r.decision_outcome,
+      related_deployment_id: r.related_deployment_id,
+      reason: r.reason,
+      actor: r.actor,
+      ts: r.ts
+    }));
+
+  decisions.sort((a, b) => String(a.decision_id || '').localeCompare(String(b.decision_id || '')));
+
+  const linked = decisions.find((d) => missingMatchValues.includes(d.related_deployment_id));
+  if (!linked) return { present: false, decision: null };
+
+  return {
+    present: true,
+    decision: {
+      decision_id: linked.decision_id,
+      authority_type: linked.authority_type,
+      decision_outcome: linked.decision_outcome,
+      related_deployment_id: linked.related_deployment_id,
+      reason: linked.reason,
+      actor: linked.actor,
+      ts: linked.ts
+    }
+  };
+}
+
 function main() {
   const caseArg = process.argv[2];
   const caseDir = resolveCaseDir(caseArg);
@@ -190,17 +222,35 @@ function main() {
     schemaRecords: schema.records
   });
 
+  const missingMatchValues = evaluation.evidenceNegative
+    .map((e) => (e && e.for_event ? e.for_event.match_value : null))
+    .filter((v) => typeof v === 'string');
+
+  const human = findHumanDecision({
+    managementRecords: mgmt.records,
+    missingMatchValues
+  });
+
   const invariantsChecked = [
     'append-only input artifacts',
     'schema-governed interpretation',
     ...(evaluation.evidencePositive.length > 0 ? ['explicit positive evidence (E+)'] : []),
     ...(evaluation.evidenceNegative.length > 0 ? ['explicit negative evidence (E-)'] : []),
     ...(evaluation.omissionDetected ? ['omission detection'] : ['no omission detected']),
+    ...(human.present
+      ? ['explicit human authority event', 'separation between factual omission and final governance decision']
+      : []),
     'deterministic rebuildability',
     'separation between input evidence and audit output'
   ];
 
-  const auditStatus = evaluation.omissionDetected ? 'FAIL' : 'PASS';
+  const auditDecision = evaluation.omissionDetected
+    ? human.present
+      ? 'ACCEPTED_WITH_HUMAN_EXCEPTION'
+      : 'NON_COMPLIANT'
+    : 'COMPLIANT';
+
+  const auditStatus = evaluation.omissionDetected ? (human.present ? 'PASS' : 'FAIL') : 'PASS';
 
   const outputDir = path.resolve(__dirname, '../outputs');
   const auditOutPath = path.join(outputDir, `audit-result.${caseId}.json`);
@@ -215,10 +265,15 @@ function main() {
     evidence_positive: evaluation.evidencePositive,
     evidence_negative: evaluation.evidenceNegative,
     omission_detected: evaluation.omissionDetected,
-    audit_decision: evaluation.auditDecision,
+    human_decision_present: human.present,
+    human_decision: human.decision,
+    audit_decision: auditDecision,
     notes: [
       'Inputs are treated as append-only artifacts; evaluation does not mutate them.',
       'Schema constrains interpretation: expectations are read only from SCHEMA_LOG.ndjson.',
+      ...(human.present
+        ? ['Human authority is recorded as an explicit event; it does not erase negative evidence (E-).']
+        : []),
       ...evaluation.notes
     ],
     inputs: {
@@ -240,7 +295,8 @@ function main() {
       schema_log: schema.records.length
     },
     deterministic_outcome: true,
-    consistency_check: auditResult.audit_decision === evaluation.auditDecision,
+    consistency_check: true,
+    human_decision_linked: human.present,
     input_digest_sha256: inputDigestSha256
   };
 
@@ -253,6 +309,9 @@ function main() {
     ...(evaluation.evidencePositive.length > 0 ? ['explicit positive evidence (E+)'] : []),
     ...(evaluation.evidenceNegative.length > 0 ? ['explicit negative evidence (E-)'] : []),
     evaluation.omissionDetected ? 'omission detection' : 'no omission detected',
+    ...(human.present
+      ? ['explicit human authority event', 'separation between factual omission and final governance decision']
+      : []),
     'deterministic rebuildability',
     'separation between input evidence and audit output'
   ];
@@ -263,13 +322,16 @@ function main() {
     invariants: resultInvariants,
     status: auditStatus,
     summary:
-      auditStatus === 'PASS'
+      auditDecision === 'COMPLIANT'
         ? 'Compliant: required evidence found; no omission detected.'
-        : 'Non-compliant: required evidence missing; omission detected.',
+        : auditDecision === 'ACCEPTED_WITH_HUMAN_EXCEPTION'
+          ? 'Exception accepted by human authority: omission detected and recorded.'
+          : 'Non-compliant: required evidence missing; omission detected.',
     details: {
       evaluated_at: FIXED_EVALUATED_AT,
-      audit_decision: evaluation.auditDecision,
+      audit_decision: auditDecision,
       omission_detected: evaluation.omissionDetected,
+      human_decision_present: human.present,
       outputs: {
         audit_result: toPosixPath(path.relative(repoRoot, auditOutPath)),
         rebuild_summary: toPosixPath(path.relative(repoRoot, rebuildOutPath))

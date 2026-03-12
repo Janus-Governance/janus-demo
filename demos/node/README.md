@@ -22,6 +22,16 @@ This case uses the same schema rule as case-01, but the required confirmation ev
 - Marks omission detected and produces a non-compliant audit decision
 - Writes deterministic output artifacts (fixed `evaluated_at`)
 
+## What `case-03-human-decision` demonstrates
+
+This case starts the same way as case-02 (missing required evidence), but adds an explicit human authority event that accepts responsibility for the exception.
+
+Important: Janus preserves omission truth — the negative evidence (`E-`) remains in the audit record even when a human accepts the exception.
+
+- Detects omission (`E-`) deterministically
+- Detects a linked human decision event for the same deployment
+- Records a human-approved exception in the final audit decision
+
 ## Invariants referenced
 
 - Append-only input artifacts
@@ -53,6 +63,8 @@ For `case-02-omission` the runner reads the same filenames:
 	- `rebuild-summary.case-01-happy-path.json`
 	- `audit-result.case-02-omission.json`
 	- `rebuild-summary.case-02-omission.json`
+	- `audit-result.case-03-human-decision.json`
+	- `rebuild-summary.case-03-human-decision.json`
 
 ## Run
 

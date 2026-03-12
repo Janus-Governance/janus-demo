@@ -1,0 +1,2 @@
+{"type":"GOVERNANCE_EVENT","event_type":"DEPLOYMENT_COMPLETED","deployment_id":"dep-003","actor":"release-bot","ts":"2026-03-12T00:00:00Z"}
+{"type":"GOVERNANCE_EVENT","event_type":"GOVERNANCE_EXCEPTION_ACCEPTED","decision_id":"dec-001","related_deployment_id":"dep-003","authority_type":"human","decision_outcome":"ACCEPT_EXCEPTION","reason":"Emergency hotfix; confirmation signal unavailable at the time.","actor":"human-authority","ts":"2026-03-12T00:00:00Z"}
