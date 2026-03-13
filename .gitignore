@@ -11,5 +11,8 @@ demos/**/outputs/*.json
 demos/**/outputs/*.ndjson
 demos/**/outputs/*.log
 
+# Published deterministic validation report
+!demos/node/outputs/janus-validation-suite.json
+
 # macOS
 .DS_Store
