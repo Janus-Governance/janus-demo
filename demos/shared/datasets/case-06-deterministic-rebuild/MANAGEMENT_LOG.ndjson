@@ -1,0 +1,7 @@
+{"type":"GOVERNANCE_EVENT","event_type":"DEPLOYMENT_COMPLETED","deployment_id":"dep-0601","actor":"release-bot","ts":"2026-03-12T00:00:00Z"}
+{"type":"EVIDENCE","evidence_type":"DEPLOYMENT_CONFIRMED","deployment_id":"dep-0601","evidence_id":"e+dep-0601-deployment-confirmed","source":"management-log","ts":"2026-03-12T00:00:00Z"}
+{"type":"GOVERNANCE_EVENT","event_type":"DEPLOYMENT_COMPLETED","deployment_id":"dep-0602","actor":"release-bot","ts":"2026-03-12T00:00:00Z"}
+{"type":"EVIDENCE","evidence_type":"DEPLOYMENT_CONFIRMED","deployment_id":"dep-0602","evidence_id":"e+dep-0602-deployment-confirmed","source":"management-log","ts":"2026-03-12T00:00:00Z"}
+{"type":"GOVERNANCE_EVENT","event_type":"DEPLOYMENT_COMPLETED","deployment_id":"dep-0603","actor":"release-bot","ts":"2026-03-12T00:00:00Z"}
+{"type":"EVIDENCE","evidence_type":"DEPLOYMENT_CONFIRMED","deployment_id":"dep-0603","evidence_id":"e+dep-0603-deployment-confirmed","source":"management-log","ts":"2026-03-12T00:00:00Z"}
+{"type":"GOVERNANCE_EVENT","event_type":"DEPLOYMENT_COMPLETED","deployment_id":"dep-0604","actor":"release-bot","ts":"2026-03-12T00:00:00Z"}

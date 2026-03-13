@@ -39,6 +39,15 @@ function sha256Hex(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+function stableStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys
+    .map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`)
+    .join(',')}}`;
+}
+
 function writeJson(filePath, obj) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2) + '\n', 'utf8');
@@ -270,6 +279,70 @@ function main() {
     missingMatchValues
   });
 
+  const auditDecision = evaluation.omissionDetected
+    ? human.present
+      ? 'ACCEPTED_WITH_HUMAN_EXCEPTION'
+      : 'NON_COMPLIANT'
+    : 'COMPLIANT';
+
+  const auditStatus = evaluation.omissionDetected ? (human.present ? 'PASS' : 'FAIL') : 'PASS';
+
+  let replay = null;
+  if (caseId === 'case-06-deterministic-rebuild') {
+    const evaluation2 = evaluate({
+      managementRecords: mgmt.records,
+      schemaRecords: schema.records
+    });
+
+    const missingMatchValues2 = evaluation2.evidenceNegative
+      .map((e) => (e && e.for_event ? e.for_event.match_value : null))
+      .filter((v) => typeof v === 'string');
+
+    const human2 = findHumanDecision({
+      managementRecords: mgmt.records,
+      missingMatchValues: missingMatchValues2
+    });
+
+    const auditDecision2 = evaluation2.omissionDetected
+      ? human2.present
+        ? 'ACCEPTED_WITH_HUMAN_EXCEPTION'
+        : 'NON_COMPLIANT'
+      : 'COMPLIANT';
+
+    const auditStatus2 = evaluation2.omissionDetected ? (human2.present ? 'PASS' : 'FAIL') : 'PASS';
+
+    const normalized1 = {
+      schema_applied: evaluation.schema_applied,
+      evidence_positive: evaluation.evidencePositive,
+      evidence_negative: evaluation.evidenceNegative,
+      omission_detected: evaluation.omissionDetected,
+      audit_decision: auditDecision,
+      status: auditStatus,
+      human_decision_present: human.present,
+      human_decision: human.decision
+    };
+
+    const normalized2 = {
+      schema_applied: evaluation2.schema_applied,
+      evidence_positive: evaluation2.evidencePositive,
+      evidence_negative: evaluation2.evidenceNegative,
+      omission_detected: evaluation2.omissionDetected,
+      audit_decision: auditDecision2,
+      status: auditStatus2,
+      human_decision_present: human2.present,
+      human_decision: human2.decision
+    };
+
+    const firstRunDigest = sha256Hex(stableStringify(normalized1));
+    const secondRunDigest = sha256Hex(stableStringify(normalized2));
+    replay = {
+      first_run_digest: firstRunDigest,
+      second_run_digest: secondRunDigest,
+      outputs_identical: firstRunDigest === secondRunDigest,
+      replay_count: 2
+    };
+  }
+
   const invariantsChecked = [
     'append-only input artifacts',
     'schema-governed interpretation',
@@ -282,14 +355,6 @@ function main() {
     'deterministic rebuildability',
     'separation between input evidence and audit output'
   ];
-
-  const auditDecision = evaluation.omissionDetected
-    ? human.present
-      ? 'ACCEPTED_WITH_HUMAN_EXCEPTION'
-      : 'NON_COMPLIANT'
-    : 'COMPLIANT';
-
-  const auditStatus = evaluation.omissionDetected ? (human.present ? 'PASS' : 'FAIL') : 'PASS';
 
   const outputDir = path.resolve(__dirname, '../outputs');
   const auditOutPath = path.join(outputDir, `audit-result.${caseId}.json`);
@@ -355,7 +420,7 @@ function main() {
       schema_log: schema.records.length
     },
     deterministic_outcome: true,
-    consistency_check: true,
+    consistency_check: replay ? replay.outputs_identical : true,
     human_decision_linked: human.present,
     schema_version_applied:
       evaluation.schema_applied && typeof evaluation.schema_applied.schema_version !== 'undefined'
@@ -363,6 +428,18 @@ function main() {
         : null,
     input_digest_sha256: inputDigestSha256
   };
+
+  if (replay) {
+    rebuildSummary.first_run_digest = replay.first_run_digest;
+    rebuildSummary.second_run_digest = replay.second_run_digest;
+    rebuildSummary.outputs_identical = replay.outputs_identical;
+    rebuildSummary.replay_count = replay.replay_count;
+    rebuildSummary.deterministic_rebuild = replay.outputs_identical && rebuildSummary.consistency_check === true;
+    rebuildSummary.notes = [
+      'Replayed evaluation twice against identical parsed inputs.',
+      'Digests are computed from a normalized (stable-key-ordered) view of the governance outcome.'
+    ];
+  }
 
   writeJson(auditOutPath, auditResult);
   writeJson(rebuildOutPath, rebuildSummary);

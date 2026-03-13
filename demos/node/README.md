@@ -52,6 +52,14 @@ This case demonstrates deterministic governance evaluation under higher event vo
 - Produces a non-compliant audit decision with deterministic evidence ordering
 - Outputs include a stress summary (deployments checked/compliant/missing) to show stable counting
 
+## What `case-06-deterministic-rebuild` demonstrates
+
+This case demonstrates deterministic rebuildability directly: the runner replays the same evaluation twice (in-process) against identical parsed inputs and proves the outputs are identical.
+
+- Runs evaluation twice against the same parsed NDJSON inputs
+- Computes `first_run_digest` and `second_run_digest` from a normalized view of the governance outcome
+- Records `outputs_identical: true` and `replay_count: 2` in the rebuild summary
+
 ## Invariants referenced
 
 - Append-only input artifacts
@@ -85,6 +93,8 @@ For each case, the runner reads the same filenames:
 	- `rebuild-summary.case-04-schema-drift.json`
 	- `audit-result.case-05-stress.json`
 	- `rebuild-summary.case-05-stress.json`
+	- `audit-result.case-06-deterministic-rebuild.json`
+	- `rebuild-summary.case-06-deterministic-rebuild.json`
 
 ## Run
 
